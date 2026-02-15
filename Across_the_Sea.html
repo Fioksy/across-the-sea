@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Across the Sea</title>
+<style>
+  :root{--ink:#f7fbff}
+  html,body{height:100%;margin:0;overflow:hidden;font-family:Segoe UI,system-ui,Roboto,Arial;background:#07122a;color:var(--ink);}
+  body:before{
+    content:"";position:fixed;inset:-80px;z-index:-2;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.18), transparent 45%),
+      radial-gradient(circle at 85% 20%, rgba(84,231,255,.20), transparent 50%),
+      radial-gradient(circle at 70% 80%, rgba(255,180,220,.18), transparent 55%),
+      linear-gradient(180deg, #07122a 0%, #0a2d6c 45%, #0b5aa3 70%, #2cbad2 100%);
+    filter:saturate(1.15) contrast(1.05);
+  }
+  body:after{
+    content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(circle at 50% -10%, rgba(255,255,255,.10), transparent 55%),
+      radial-gradient(circle at 50% 120%, rgba(255,255,255,.10), transparent 60%);
+  }
+
+  .wrap{height:100%;display:flex;align-items:center;justify-content:center;padding:22px;}
+  .window{
+    width:min(1120px,96vw);border-radius:18px;overflow:hidden;
+    border:1px solid rgba(255,255,255,.20);
+    background:linear-gradient(180deg, rgba(255,255,255,.20), rgba(255,255,255,.08));
+    box-shadow:0 30px 120px rgba(0,0,0,.65);
+    backdrop-filter: blur(10px);
+  }
+  .titlebar{
+    height:44px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 12px 0 10px;position:relative;
+    background:linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.08));
+    border-bottom:1px solid rgba(255,255,255,.18);
+  }
+  .titlebar:after{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.9;
+    background:linear-gradient(90deg, rgba(84,231,255,.12), rgba(255,120,190,.10), rgba(255,235,160,.12));
+    mix-blend-mode:screen;
+  }
+  .title-left{display:flex;align-items:center;gap:10px;position:relative;z-index:1;}
+  .orb{width:16px;height:16px;border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.95), rgba(84,231,255,.55) 35%, rgba(255,120,190,.35) 70%, rgba(0,0,0,0) 74%);
+    box-shadow:0 0 18px rgba(84,231,255,.35);
+  }
+  .title{font-weight:700;letter-spacing:.2px;text-shadow:0 1px 0 rgba(0,0,0,.35);user-select:none;}
+  .winbtns{display:flex;gap:8px;position:relative;z-index:1;}
+  .winbtn{width:34px;height:22px;border-radius:8px;display:grid;place-items:center;
+    border:1px solid rgba(255,255,255,.22);
+    background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.08));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25);
+    color:rgba(247,251,255,.86);font-size:12px;user-select:none;
+  }
+  .winbtn.close{background:linear-gradient(180deg, rgba(255,107,107,.55), rgba(255,107,107,.18));border-color:rgba(255,107,107,.55);}
+
+  .content{padding:14px;background:linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.22));}
+  canvas{
+    width:100%;aspect-ratio:1040/600;height:auto;display:block;
+    border-radius:14px;border:1px solid rgba(255,255,255,.16);
+    box-shadow:0 18px 60px rgba(0,0,0,.55);
+    background:transparent;touch-action:none;cursor:pointer;
+  }
+  .statusbar{
+    height:44px;display:flex;align-items:center;justify-content:space-between;
+    gap:10px;padding:0 12px;
+    border-top:1px solid rgba(255,255,255,.14);
+    background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+    color:rgba(247,251,255,.72);font-size:12px;user-select:none;
+  }
+  .kbd{display:inline-block;padding:.06rem .35rem;border:1px solid rgba(255,255,255,.25);border-bottom-width:2px;border-radius:8px;margin:0 .15rem;}
+  .pill{
+    padding:6px 10px;border-radius:999px;display:flex;align-items:center;gap:10px;white-space:nowrap;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.08);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+  }
+  .btn{
+    padding:6px 10px;border-radius:999px;font-weight:650;cursor:pointer;
+    border:1px solid rgba(255,255,255,.20);
+    background:linear-gradient(180deg, rgba(255,255,255,.20), rgba(255,255,255,.07));
+    color:rgba(247,251,255,.86);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.18);
+  }
+  input[type="range"]{width:140px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="window" id="window">
+    <div class="titlebar">
+      <div class="title-left"><div class="orb"></div><div class="title">Across the Sea.exe</div></div>
+      <div class="winbtns"><div class="winbtn">—</div><div class="winbtn">▢</div><div class="winbtn close">✕</div></div>
+    </div>
+    <div class="content"><canvas id="c" width="1040" height="600"></canvas></div>
+    <div class="statusbar">
+      <div class="pill">Glide: cursor/finger • Boost: <span class="kbd">Space</span> • Mute: <span class="kbd">M</span> • Restart: <span class="kbd">R</span></div>
+      <div class="pill">
+        <button class="btn" id="playBtn">▶ Play</button>
+        <span id="musicState">Music: off</span>
+        <span style="opacity:.8;">Vol</span>
+        <input id="vol" type="range" min="0" max="100" value="14" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<audio id="bgm" preload="auto" loop>
+  <source src="./scizzie - aquatic ambience 4.mp3" type="audio/mpeg">
+  <source src="./aquatic.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+(() => {
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  const winEl = document.getElementById("window");
+  const W = canvas.width, H = canvas.height;
+
+  // ---------- Audio ----------
+  const bgm = document.getElementById("bgm");
+  const playBtn = document.getElementById("playBtn");
+  const musicState = document.getElementById("musicState");
+  const vol = document.getElementById("vol");
+  let muted=false, playing=false;
+
+  function setMusicVolume(){
+    const v = Math.max(0, Math.min(1, (Number(vol.value)||0)/100));
+    bgm.volume = muted ? 0 : v;
+  }
+  vol.addEventListener("input", ()=>{ setMusicVolume(); musicState.textContent = muted ? "Music: muted" : (playing ? "Music: on" : "Music: off"); });
+  setMusicVolume();
+
+  async function startMusic(){
+    try{
+      bgm.muted=false;
+      setMusicVolume();
+      bgm.load();
+      await bgm.play();
+      playing=true;
+      playBtn.textContent="⏸ Pause";
+      musicState.textContent = muted ? "Music: muted" : "Music: on";
+    }catch(e){
+      playing=false;
+      playBtn.textContent="▶ Play";
+      musicState.textContent="Music: failed (check filename)";
+      console.warn(e);
+    }
+  }
+  function pauseMusic(){
+    bgm.pause();
+    playing=false;
+    playBtn.textContent="▶ Play";
+    musicState.textContent = muted ? "Music: muted" : "Music: off";
+  }
+  playBtn.addEventListener("click",(e)=>{ e.preventDefault(); e.stopPropagation(); (playing && !bgm.paused) ? pauseMusic() : startMusic(); });
+  function armMusic(){ if(!playing && !muted) startMusic(); }
+  winEl.addEventListener("pointerdown", armMusic, {passive:true});
+  window.addEventListener("keydown",(e)=>{
+    if(e.key==="m"||e.key==="M"){ muted=!muted; setMusicVolume(); musicState.textContent = muted ? "Music: muted" : (playing ? "Music: on" : "Music: off"); return; }
+    if(!muted) armMusic();
+  }, {passive:true});
+
+  // ---------- Helpers ----------
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  const rand=(a,b)=>Math.random()*(b-a)+a;
+  const randi=(a,b)=>Math.floor(rand(a,b+1));
+  const dist2=(ax,ay,bx,by)=>{const dx=ax-bx,dy=ay-by;return dx*dx+dy*dy;};
+
+  function roundRect(x,y,w,h,r,fill){
+    ctx.beginPath();
+    const rr=Math.min(r,w/2,h/2);
+    ctx.moveTo(x+rr,y);
+    ctx.arcTo(x+w,y,x+w,y+h,rr);
+    ctx.arcTo(x+w,y+h,x,y+h,rr);
+    ctx.arcTo(x,y+h,x,y,rr);
+    ctx.arcTo(x,y,x+w,y,rr);
+    fill?ctx.fill():ctx.stroke();
+  }
+  function glow(x,y,r,rgba,a){
+    ctx.save(); ctx.globalAlpha=a;
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,rgba); g.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  function glassPanel(x,y,w,h,r=18){
+    ctx.save();
+    ctx.fillStyle="rgba(255,255,255,0.16)";
+    roundRect(x,y,w,h,r,true);
+    ctx.globalAlpha=0.55;
+    ctx.strokeStyle="rgba(255,255,255,0.26)";
+    ctx.lineWidth=2;
+    roundRect(x+2,y+2,w-4,h-4,r-2,false);
+    ctx.globalAlpha=0.30;
+    const g=ctx.createLinearGradient(0,y,0,y+h);
+    g.addColorStop(0,"rgba(255,255,255,0.30)");
+    g.addColorStop(0.35,"rgba(255,255,255,0.08)");
+    g.addColorStop(1,"rgba(255,255,255,0.00)");
+    ctx.fillStyle=g;
+    roundRect(x+3,y+3,w-6,h*0.58,r-3,true);
+    ctx.restore();
+  }
+  function drawSprite(img,x,y,scale,anchor="bottom-center"){
+    if(!img || !img.complete) return;
+    ctx.save();
+    ctx.imageSmoothingEnabled=false;
+    const w=img.width*scale, h=img.height*scale;
+    let dx=x, dy=y;
+    if(anchor.includes("center")) dx=x-w/2;
+    if(anchor.includes("bottom")) dy=y-h;
+    ctx.drawImage(img, Math.round(dx), Math.round(dy), Math.round(w), Math.round(h));
+    ctx.restore();
+  }
+
+  // ---------- Game config ----------
+  const GAME = {
+    title:"Across the Sea",
+    girlfriendName:"Kelci",
+    from:"United States",
+    to:"Australia",
+    typedDoorText:"THE D O R E",
+    jokes:[
+      "I like apples and bananas","Uhhh.. fluffy","Liam! Pick up these damn socks!","Deb...",
+      "Isaac shut the hell up! DAMN","Just for future reference...","I AM WOMAN","Boog is sorry!",
+      "You have boobies under the water....","Somebody from Wallmart'll be right with ya"
+    ],
+    travelSeconds:42,
+    glide:{
+      planeX:0.32,
+      ySmooth:0.13,
+      maxYSpeed:620,
+      tiltStrength:0.0017,
+      baseScroll:260,
+      boostScroll:360,
+      scrollEase:0.08,
+      trailLen:70
+    },
+    obstacles:{
+      bubbleEveryMin:0.65, bubbleEveryMax:1.15,
+      cloudEveryMin:1.05, cloudEveryMax:1.8
+    }
+  };
+
+  // ✅ Sprites at 15% of previous (0.15x)
+  const SPR = {
+    menu: 1.20 * 0.15,
+    dialogYou: 1.30 * 0.15,
+    win: 1.25 * 0.15
+  };
+
+  // ---------- Sprites ----------
+  const sprites = { me_wave:new Image(), me:new Image(), kelci_wave:new Image(), kelci:new Image() };
+  const spriteSrc = {
+    me_wave:"./MeWithIceCream.png",
+    me:"./Me.png",
+    kelci_wave:"./KelciWave.png",
+    kelci:"./Kelci.png"
+  };
+  let spritesReady=false, loaded=0, total=Object.keys(sprites).length;
+  for(const k in sprites){
+    sprites[k].onload=()=>{ loaded++; if(loaded>=total) spritesReady=true; };
+    sprites[k].onerror=()=>console.warn("Sprite missing:", spriteSrc[k]);
+    sprites[k].src=spriteSrc[k];
+  }
+
+  // ---------- Input ----------
+  const input={x:W*0.5,y:H*0.5,boost:false,justBoost:false};
+  const touch={active:false};
+  function toLocal(e){
+    const r=canvas.getBoundingClientRect();
+    return {x:(e.clientX-r.left)*(W/r.width), y:(e.clientY-r.top)*(H/r.height)};
+  }
+  window.addEventListener("keydown",(e)=>{
+    if(e.key==="r"||e.key==="R") hardRestart();
+    if(e.code==="Space"){ e.preventDefault(); input.boost=true; input.justBoost=true; }
+  });
+  window.addEventListener("keyup",(e)=>{ if(e.code==="Space") input.boost=false; });
+
+  // ---------- State ----------
+  const STATE={MENU:0,FLY:1,ARRIVE:2,DIALOG:3,CHOICE:4,CRASH:5,WIN:6};
+  let state=STATE.MENU;
+
+  // ---------- Story typing ----------
+  const typer={active:false,target:"",shown:"",i:0,t:0,speed:4,done:false};
+  function beginType(text,speed=4){ typer.active=true; typer.target=text; typer.shown=""; typer.i=0; typer.t=0; typer.speed=speed; typer.done=false; }
+  function updateType(){
+    if(!typer.active||typer.done) return;
+    typer.t++;
+    if(typer.t%typer.speed===0 && typer.i<typer.target.length) typer.shown += typer.target[typer.i++];
+    if(typer.i>=typer.target.length) typer.done=true;
+  }
+  const dialog={lines:[],li:0,typed:"",ci:0,t:0,speed:2,waiting:false,done:false};
+  function beginDialog(lines){
+    dialog.lines=lines.slice(); dialog.li=0; dialog.typed=""; dialog.ci=0; dialog.t=0;
+    dialog.waiting=false; dialog.done=false;
+  }
+  function updateDialog(){
+    if(dialog.done) return;
+    const line=dialog.lines[dialog.li]??"";
+    dialog.t++;
+    if(dialog.ci<line.length){
+      if(dialog.t%dialog.speed===0) dialog.typed += line[dialog.ci++];
+    }else dialog.waiting=true;
+  }
+  function advanceDialog(){
+    if(!dialog.waiting) return;
+    dialog.li++; dialog.typed=""; dialog.ci=0; dialog.t=0; dialog.waiting=false;
+    if(dialog.li>=dialog.lines.length) dialog.done=true;
+  }
+
+  // ---------- World / entities ----------
+  const world={t:0,scroll:0,scrollSpd:GAME.glide.baseScroll,progress:0,oceanPhase:0};
+  const plane={
+    x:W*GAME.glide.planeX, y:H*0.42, vy:0, tilt:0,
+    trail:[],
+    hp:10,
+    invuln:0 // seconds
+  };
+  const door={x:W*0.74,y:H*0.22,w:150,h:240};
+  const bgBubbles=[], jokes=[], clouds=[], bubbles=[], pops=[];
+  let bubbleTimer=0.5, cloudTimer=0.9;
+
+  function spawnBgBubble(){
+    bgBubbles.push({x:W+rand(30,220),y:rand(50,H*0.62),r:rand(18,80),sp:rand(12,34),a:rand(0.06,0.14),hue:rand(170,240),wob:rand(0.8,1.5),p:rand(0,Math.PI*2)});
+  }
+  function spawnJoke(){
+    jokes.push({x:W+rand(80,220),y:rand(80,H*0.62),sp:rand(40,85),text:GAME.jokes[randi(0,GAME.jokes.length-1)],life:0,max:randi(220,380),a:0,bob:rand(0.8,1.6),p:rand(0,Math.PI*2)});
+  }
+  function spawnCloud(){ clouds.push({x:W+rand(80,200),y:rand(80,H*0.52),r:rand(52,92),hit:0,wob:rand(0.7,1.2),p:rand(0,Math.PI*2)}); }
+  function spawnObstacleBubble(){ bubbles.push({x:W+rand(80,220),y:rand(90,H*0.58),r:rand(28,56),hue:rand(175,210),hit:0,wob:rand(0.8,1.4),p:rand(0,Math.PI*2)}); }
+  function popAt(x,y,n=18){
+    for(let i=0;i<n;i++) pops.push({x,y,vx:rand(-180,180),vy:rand(-180,180),r:rand(1.6,3.8),a:1,life:rand(0.25,0.55),hue:rand(170,220)});
+  }
+  function pushTrail(){
+    plane.trail.push({x:plane.x,y:plane.y});
+    if(plane.trail.length>GAME.glide.trailLen) plane.trail.shift();
+  }
+
+  // ---------- Damage / restart ----------
+  function takeHit(x,y){
+    if(plane.invuln>0) return;
+    plane.hp = Math.max(0, plane.hp-1);
+    plane.invuln = 0.55; // i-frames
+    popAt(x,y,26);
+    if(plane.hp<=0){
+      // immediate restart (to menu)
+      hardRestart();
+    }
+  }
+
+  // ---------- Drawing ----------
+  function drawSky(){
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,"#1c8fe0");
+    g.addColorStop(0.42,"#64d4ee");
+    g.addColorStop(0.70,"#bfefff");
+    g.addColorStop(1,"#e8fbff");
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+    const sx=W*0.88, sy=H*0.14;
+    glow(sx,sy,220,"rgba(255,255,255,0.95)",0.15);
+    glow(sx,sy,420,"rgba(255,235,170,0.70)",0.08);
+
+    ctx.save(); ctx.globalAlpha=0.10;
+    for(let i=0;i<7;i++) glow(sx-(i*90), sy+(i*40), 60+(i*18), "rgba(255,255,255,0.9)", 0.08);
+    ctx.restore();
+  }
+  function drawHorizon(){
+    const seaTop=H*0.62;
+    const sea=ctx.createLinearGradient(0,seaTop,0,H*0.86);
+    sea.addColorStop(0,"rgba(90,210,235,0.55)");
+    sea.addColorStop(0.55,"rgba(40,120,190,0.55)");
+    sea.addColorStop(1,"rgba(10,40,80,0.60)");
+    ctx.fillStyle=sea;
+    ctx.fillRect(0,seaTop,W,H*0.24);
+
+    world.oceanPhase += 0.02;
+    ctx.save(); ctx.globalAlpha=0.18; ctx.strokeStyle="rgba(255,255,255,0.70)"; ctx.lineWidth=2;
+    for(let k=0;k<10;k++){
+      const y=seaTop+14+k*16;
+      ctx.beginPath();
+      for(let x=0;x<=W;x+=22){
+        const t=world.oceanPhase + k*0.8;
+        const yy=y + Math.sin(x*0.02+t)*2.6;
+        if(x===0) ctx.moveTo(x,yy); else ctx.lineTo(x,yy);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    const grassTop=H*0.80;
+    const gr=ctx.createLinearGradient(0,grassTop,0,H);
+    gr.addColorStop(0,"rgba(170,240,120,0.15)");
+    gr.addColorStop(0.35,"rgba(120,230,90,0.55)");
+    gr.addColorStop(1,"rgba(60,160,60,0.95)");
+    ctx.fillStyle=gr; ctx.fillRect(0,grassTop,W,H-grassTop);
+    ctx.save(); ctx.globalAlpha=0.18;
+    const hg=ctx.createLinearGradient(0,grassTop,0,grassTop+120);
+    hg.addColorStop(0,"rgba(255,255,255,0.35)");
+    hg.addColorStop(1,"rgba(255,255,255,0)");
+    ctx.fillStyle=hg; ctx.fillRect(0,grassTop,W,140);
+    ctx.restore();
+  }
+  function drawBgBubbles(){
+    for(const b of bgBubbles){
+      ctx.save(); ctx.globalAlpha=b.a;
+      const g=ctx.createRadialGradient(b.x-b.r*0.3,b.y-b.r*0.35,0,b.x,b.y,b.r*1.2);
+      g.addColorStop(0,"rgba(255,255,255,0.85)");
+      g.addColorStop(0.18,`hsla(${b.hue},90%,78%,0.40)`);
+      g.addColorStop(1,"rgba(255,255,255,0.02)");
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=b.a*0.75;
+      ctx.strokeStyle="rgba(255,255,255,0.28)"; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.stroke();
+      ctx.globalAlpha=b.a*0.55;
+      ctx.fillStyle="rgba(255,255,255,0.65)";
+      ctx.beginPath(); ctx.ellipse(b.x-b.r*0.25, b.y-b.r*0.30, b.r*0.30, b.r*0.22, -0.2, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+  function drawJokes(){
+    ctx.save(); ctx.font="16px system-ui";
+    for(const j of jokes){
+      ctx.globalAlpha=j.a;
+      const pad=14, tw=ctx.measureText(j.text).width;
+      const w=tw+pad*2, h=34, x=j.x-w/2, y=j.y-h/2;
+      ctx.fillStyle="rgba(0,40,80,0.28)"; roundRect(x,y,w,h,16,true);
+      ctx.globalAlpha*=0.7; ctx.fillStyle="rgba(255,255,255,0.12)"; roundRect(x+2,y+2,w-4,h*0.55,14,true);
+      ctx.globalAlpha=j.a; ctx.fillStyle="rgba(255,255,255,0.95)"; ctx.fillText(j.text, x+pad, y+22);
+    }
+    ctx.restore(); ctx.globalAlpha=1;
+  }
+  function drawCloud(o){
+    ctx.save(); ctx.translate(o.x,o.y);
+    const r=o.r;
+    glow(0,0,r*2.8,"rgba(255,255,255,0.95)",0.10+o.hit*0.15);
+    ctx.globalAlpha=0.18+o.hit*0.12; ctx.fillStyle="rgba(255,255,255,0.95)";
+    roundRect(-r*1.2,-r*0.5,r*2.4,r*1.1,r*0.6,true);
+    roundRect(-r*0.3,-r*0.9,r*1.5,r*1.0,r*0.6,true);
+    roundRect(-r*1.6,-r*0.2,r*1.3,r*0.9,r*0.6,true);
+    ctx.globalAlpha=0.10+o.hit*0.10; ctx.fillStyle="rgba(255,255,255,0.9)";
+    roundRect(-r*1.15,-r*0.45,r*2.3,r*0.45,r*0.5,true);
+    ctx.restore();
+  }
+  function drawObstacleBubble(o){
+    ctx.save(); ctx.translate(o.x,o.y);
+    const r=o.r;
+    glow(0,0,r*3.2,"rgba(255,255,255,0.95)",0.06+o.hit*0.12);
+    glow(0,0,r*2.2,`hsla(${o.hue},90%,70%,0.9)`,0.07+o.hit*0.14);
+    ctx.globalAlpha=0.16+o.hit*0.10;
+    const g=ctx.createRadialGradient(-r*0.25,-r*0.30,0,0,0,r*1.25);
+    g.addColorStop(0,"rgba(255,255,255,0.92)");
+    g.addColorStop(0.18,`hsla(${o.hue},90%,80%,0.55)`);
+    g.addColorStop(1,"rgba(255,255,255,0.05)");
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=0.22+o.hit*0.10; ctx.strokeStyle="rgba(255,255,255,0.35)"; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=0.22+o.hit*0.10; ctx.fillStyle="rgba(255,255,255,0.75)";
+    ctx.beginPath(); ctx.ellipse(-r*0.25, -r*0.30, r*0.32, r*0.22, -0.25, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  function drawTrail(){
+    const tr=plane.trail;
+    for(let i=0;i<tr.length;i++){
+      const a=i/(tr.length-1||1);
+      const r=lerp(2.0,10.0,a);
+      const alpha=lerp(0.03,0.22,a);
+      glow(tr[i].x,tr[i].y,r*3.2,"rgba(255,255,255,0.95)",alpha*0.60);
+      glow(tr[i].x,tr[i].y,r*2.6,"rgba(120,220,255,0.95)",alpha*0.55);
+      ctx.save(); ctx.globalAlpha=alpha; ctx.fillStyle="rgba(255,255,255,0.60)";
+      ctx.beginPath(); ctx.arc(tr[i].x,tr[i].y,r,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+  function drawPlane(){
+    ctx.save();
+    ctx.translate(plane.x,plane.y);
+    ctx.rotate(plane.tilt);
+    glow(0,0,70,"rgba(255,255,255,0.95)",0.10);
+    glow(0,0,90,"rgba(120,220,255,0.95)",0.08);
+    ctx.fillStyle="rgba(255,255,255,0.92)"; roundRect(-28,-10,64,20,12,true);
+    ctx.fillStyle="rgba(120,220,255,0.35)"; roundRect(-8,-16,28,14,9,true);
+    ctx.strokeStyle="rgba(255,255,255,0.30)"; ctx.lineWidth=2; roundRect(-8,-16,28,14,9,false);
+    ctx.fillStyle="rgba(255,200,120,0.90)"; roundRect(-10,-2,34,8,6,true);
+    ctx.restore();
+
+    // invuln blink
+    if(plane.invuln>0){
+      ctx.save();
+      ctx.globalAlpha=0.22;
+      glow(plane.x,plane.y,120,"rgba(255,120,190,0.95)",0.12);
+      ctx.restore();
+    }
+  }
+  function drawHUD(){
+    const x=18,y=16,w=W-36,h=16;
+    ctx.save();
+    ctx.fillStyle="rgba(0,40,80,0.22)"; roundRect(x,y,w,h,10,true);
+    const p=clamp(world.progress,0,1);
+    const gg=ctx.createLinearGradient(x,y,x+w,y);
+    gg.addColorStop(0,"rgba(110,235,255,0.92)");
+    gg.addColorStop(0.6,"rgba(255,140,200,0.92)");
+    gg.addColorStop(1,"rgba(255,235,170,0.92)");
+    ctx.fillStyle=gg; roundRect(x,y,w*p,h,10,true);
+
+    ctx.font="14px system-ui";
+    ctx.fillStyle="rgba(10,30,60,0.65)";
+    ctx.fillText(`${GAME.from}  →  ${GAME.to}`, x+6, y+38);
+    ctx.fillStyle="rgba(255,255,255,0.90)";
+    ctx.fillText(`${GAME.from}  →  ${GAME.to}`, x+6, y+37);
+
+    // HP
+    ctx.textAlign="right";
+    ctx.fillStyle="rgba(10,30,60,0.65)";
+    ctx.fillText(`💗 ${plane.hp}/10`, W-22, y+38);
+    ctx.fillStyle="rgba(255,255,255,0.92)";
+    ctx.fillText(`💗 ${plane.hp}/10`, W-22, y+37);
+    ctx.textAlign="left";
+    ctx.restore();
+  }
+
+  // ---------- Flight update ----------
+  function updateFlight(dt){
+    const targetSpd = input.boost ? GAME.glide.boostScroll : GAME.glide.baseScroll;
+    world.scrollSpd = lerp(world.scrollSpd, targetSpd, GAME.glide.scrollEase);
+    world.scroll += world.scrollSpd * dt;
+
+    // progress
+    world.progress = clamp(world.scroll / (GAME.travelSeconds * GAME.glide.baseScroll), 0, 1);
+
+    // glide Y
+    const top=60, bot=H*0.60;
+    const ty = clamp(input.y, top, bot);
+    const dy = ty - plane.y;
+    const desiredVy = dy * (GAME.glide.ySmooth / Math.max(0.001, dt));
+    plane.vy = lerp(plane.vy, clamp(desiredVy, -GAME.glide.maxYSpeed, GAME.glide.maxYSpeed), 0.10);
+    plane.y += plane.vy * dt;
+
+    plane.tilt = lerp(plane.tilt, clamp(plane.vy * GAME.glide.tiltStrength, -0.33, 0.33), 0.12);
+    plane.x = W * GAME.glide.planeX;
+
+    // invuln timer
+    plane.invuln = Math.max(0, plane.invuln - dt);
+
+    pushTrail();
+
+    // background bubbles
+    if(bgBubbles.length<18 && Math.random()<0.35) spawnBgBubble();
+    for(let i=bgBubbles.length-1;i>=0;i--){
+      const b=bgBubbles[i];
+      b.p += dt*1.2*b.wob;
+      b.x -= (world.scrollSpd*0.12 + b.sp) * dt;
+      b.y += Math.sin(b.p)*0.25;
+      if(b.x < -200) bgBubbles.splice(i,1);
+    }
+
+    // jokes
+    if(jokes.length<3 && Math.random()<0.015) spawnJoke();
+    for(let i=jokes.length-1;i>=0;i--){
+      const j=jokes[i];
+      j.life += dt*60;
+      j.p += dt*1.4*j.bob;
+      j.x -= (world.scrollSpd*0.55 + j.sp) * dt;
+      j.y += Math.sin(j.p)*0.20;
+      const fadeIn=clamp(j.life/40,0,1);
+      const fadeOut=clamp((j.max-j.life)/50,0,1);
+      j.a=Math.min(fadeIn,fadeOut)*0.92;
+      if(j.life>=j.max || j.x<-520) jokes.splice(i,1);
+    }
+
+    // spawn obstacles (easier: fewer spawns)
+    cloudTimer -= dt;
+    if(cloudTimer<=0){ spawnCloud(); cloudTimer = rand(GAME.obstacles.cloudEveryMin, GAME.obstacles.cloudEveryMax); }
+
+    bubbleTimer -= dt;
+    if(bubbleTimer<=0){ spawnObstacleBubble(); bubbleTimer = rand(GAME.obstacles.bubbleEveryMin, GAME.obstacles.bubbleEveryMax); }
+
+    // move obstacles
+    for(let i=clouds.length-1;i>=0;i--){
+      const c=clouds[i];
+      c.p += dt*1.4*c.wob;
+      c.x -= world.scrollSpd * dt;
+      c.y += Math.sin(c.p)*0.18;
+      c.hit *= Math.pow(0.05, dt);
+      if(c.x<-260) clouds.splice(i,1);
+    }
+    for(let i=bubbles.length-1;i>=0;i--){
+      const b=bubbles[i];
+      b.p += dt*1.6*b.wob;
+      b.x -= world.scrollSpd * dt;
+      b.y += Math.sin(b.p)*0.20;
+      b.hit *= Math.pow(0.05, dt);
+      if(b.x<-260) bubbles.splice(i,1);
+    }
+
+    // pops
+    for(let i=pops.length-1;i>=0;i--){
+      const p=pops[i];
+      p.life -= dt;
+      p.x += p.vx*dt; p.y += p.vy*dt;
+      p.vx *= Math.pow(0.02, dt);
+      p.vy *= Math.pow(0.02, dt);
+      p.a = clamp(p.life/0.35,0,1);
+      if(p.life<=0) pops.splice(i,1);
+    }
+
+    // collisions (both deal damage now)
+    const pr=14;
+    for(const c of clouds){
+      const rr=c.r*0.95 + pr;
+      if(dist2(plane.x,plane.y,c.x,c.y) < rr*rr){
+        c.hit=1;
+        takeHit(c.x,c.y);
+      }
+    }
+    for(const b of bubbles){
+      const rr=b.r*0.85 + pr;
+      if(dist2(plane.x,plane.y,b.x,b.y) < rr*rr){
+        b.hit=1;
+        takeHit(b.x,b.y);
+      }
+    }
+
+    // arrive
+    if(world.progress>=1){
+      state=STATE.ARRIVE;
+      beginType(GAME.typedDoorText, 4);
+    }
+  }
+
+  // ---------- Scenes ----------
+  function drawMenu(){
+    drawSky(); drawHorizon(); drawBgBubbles();
+    drawSprite(sprites.kelci_wave, W*0.22, H*0.80, SPR.menu, "bottom-center");
+
+    glassPanel(92, 110, W-184, 330, 28);
+    ctx.textAlign="center";
+    ctx.fillStyle="rgba(255,255,255,0.96)";
+    ctx.font="900 56px system-ui";
+    ctx.fillText(GAME.title, W/2, 190);
+    ctx.font="18px system-ui";
+    ctx.fillStyle="rgba(255,255,255,0.88)";
+    ctx.fillText("Soar across the sea to see me 💖", W/2, 228);
+    ctx.font="16px system-ui";
+    ctx.fillStyle="rgba(255,255,255,0.80)";
+    ctx.fillText("Click to start. You have 10 hearts.", W/2, 270);
+
+    const bx=W/2-170, by=330, bw=340, bh=60;
+    const btnG=ctx.createLinearGradient(bx,by,bx+bw,by);
+    btnG.addColorStop(0,"rgba(110,235,255,0.92)");
+    btnG.addColorStop(0.6,"rgba(255,140,200,0.92)");
+    btnG.addColorStop(1,"rgba(255,235,170,0.92)");
+    ctx.fillStyle=btnG; roundRect(bx,by,bw,bh,20,true);
+    ctx.globalAlpha=0.45; ctx.fillStyle="rgba(255,255,255,0.20)";
+    roundRect(bx+3,by+3,bw-6,bh*0.55,18,true);
+    ctx.globalAlpha=1; ctx.fillStyle="rgba(0,30,60,0.16)";
+    roundRect(bx,by+bh-12,bw,12,20,true);
+    ctx.fillStyle="rgba(255,255,255,0.98)";
+    ctx.font="800 20px system-ui";
+    ctx.fillText("Start ✈️", W/2, by+41);
+    ctx.textAlign="left";
+  }
+
+  function drawFlight(){
+    drawSky(); drawHorizon(); drawBgBubbles();
+    for(const c of clouds) drawCloud(c);
+    for(const b of bubbles) drawObstacleBubble(b);
+    drawJokes();
+
+    // pops
+    for(const p of pops){
+      ctx.save();
+      ctx.globalAlpha=p.a*0.75;
+      ctx.fillStyle=`hsla(${p.hue},90%,78%,${p.a})`;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    drawTrail();
+    drawPlane();
+    drawHUD();
+
+    if(world.t < 7){
+      glassPanel(20, H-92, 640, 64, 18);
+      ctx.fillStyle="rgba(255,255,255,0.92)";
+      ctx.font="16px system-ui";
+      ctx.fillText("Glide with your cursor. Avoid clouds + bubbles. Space boosts.", 44, H-52);
+    }
+  }
+
+  function drawArrive(){
+    drawSky(); drawHorizon(); drawBgBubbles();
+    updateType();
+
+    // settle plane
+    plane.y = lerp(plane.y, H*0.44, 0.06);
+    plane.vy *= 0.85;
+    plane.tilt = lerp(plane.tilt, 0, 0.10);
+    pushTrail();
+
+    drawTrail(); drawPlane();
+
+    // door
+    glow(door.x+door.w/2, door.y+door.h/2, 260, "rgba(255,255,255,0.95)", 0.10);
+    ctx.fillStyle="rgba(0,40,80,0.30)"; roundRect(door.x,door.y,door.w,door.h,16,true);
+    ctx.fillStyle="rgba(255,255,255,0.10)"; roundRect(door.x+14,door.y+14,door.w-28,door.h-28,14,true);
+    ctx.fillStyle="rgba(255,235,170,0.95)"; ctx.beginPath(); ctx.arc(door.x+door.w-30, door.y+door.h/2, 8, 0, Math.PI*2); ctx.fill();
+
+    ctx.textAlign="center";
+    ctx.font="900 40px system-ui";
+    ctx.fillStyle="rgba(255,120,190,0.98)";
+    ctx.fillText(typer.shown, door.x+door.w/2, door.y-26);
+    ctx.font="14px system-ui";
+    ctx.fillStyle="rgba(255,255,255,0.86)";
+    ctx.fillText(typer.done ? "OPEN IT" : "…", door.x+door.w/2, door.y-54);
+    ctx.textAlign="left";
+
+    glassPanel(20, H-92, 520, 64, 18);
+    ctx.fillStyle="rgba(255,255,255,0.92)";
+    ctx.font="16px system-ui";
+    ctx.fillText("You made it — click the door.", 44, H-52);
+  }
+
+  function drawDialogScene(){
+    drawSky(); drawHorizon(); drawBgBubbles();
+    updateDialog();
+
+    // door backdrop
+    glow(door.x+door.w/2, door.y+door.h/2, 280, "rgba(255,255,255,0.95)", 0.10);
+    ctx.fillStyle="rgba(0,40,80,0.30)"; roundRect(door.x,door.y,door.w,door.h,16,true);
+    ctx.fillStyle="rgba(255,255,255,0.10)"; roundRect(door.x+14,door.y+14,door.w-28,door.h-28,14,true);
+
+    drawSprite(sprites.me_wave, door.x-60, door.y+door.h, SPR.dialogYou, "bottom-center");
+
+    // speech bubble
+    const line=dialog.typed;
+    const hint=dialog.waiting ? "Click to continue" : "";
+    const cx=W*0.50, cy=H*0.28;
+    ctx.save();
+    ctx.font="20px system-ui";
+    const pad=18, tw=ctx.measureText(line).width;
+    const bw=Math.max(260,tw+pad*2), bh=62;
+    const x=cx-bw/2, y=cy-bh/2;
+    ctx.fillStyle="rgba(0,40,80,0.28)"; roundRect(x,y,bw,bh,18,true);
+    ctx.globalAlpha=0.55; ctx.fillStyle="rgba(255,255,255,0.14)"; roundRect(x+2,y+2,bw-4,bh*0.55,16,true);
+    ctx.globalAlpha=1; ctx.fillStyle="rgba(255,255,255,0.96)"; ctx.fillText(line, x+pad, y+38);
+    if(hint){ ctx.font="14px system-ui"; ctx.fillStyle="rgba(255,255,255,0.82)"; ctx.fillText(hint, x+pad, y+58); }
+    ctx.fillStyle="rgba(0,40,80,0.28)";
+    ctx.beginPath(); ctx.moveTo(cx-12,y+bh); ctx.lineTo(cx+12,y+bh); ctx.lineTo(cx,y+bh+14); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  // ---------- Click handling ----------
+  function startFlight(){
+    state=STATE.FLY;
+    world.scroll=0; world.progress=0;
+    world.scrollSpd=GAME.glide.baseScroll;
+    plane.hp=10; plane.invuln=0;
+    plane.trail.length=0;
+    clouds.length=0; bubbles.length=0; pops.length=0; jokes.length=0;
+    bubbleTimer=0.55; cloudTimer=0.95;
+    for(let i=0;i<2;i++) spawnJoke();
+  }
+
+  function hardRestart(){
+    state=STATE.MENU;
+    world.t=0; world.scroll=0; world.scrollSpd=GAME.glide.baseScroll; world.progress=0; world.oceanPhase=0;
+    plane.x=W*GAME.glide.planeX; plane.y=H*0.42; plane.vy=0; plane.tilt=0; plane.trail.length=0; plane.hp=10; plane.invuln=0;
+    bgBubbles.length=0; jokes.length=0; clouds.length=0; bubbles.length=0; pops.length=0;
+    beginType("",4); beginDialog([]);
+    bubbleTimer=0.55; cloudTimer=0.95;
+    for(let i=0;i<12;i++) spawnBgBubble();
+    for(let i=0;i<2;i++) spawnJoke();
+  }
+
+  canvas.addEventListener("pointerdown",(e)=>{
+    canvas.setPointerCapture(e.pointerId);
+    touch.active=true;
+    const p=toLocal(e);
+    input.x=p.x; input.y=p.y;
+
+    armMusic();
+
+    if(state===STATE.MENU){ startFlight(); return; }
+    if(state===STATE.FLY){ input.boost=true; input.justBoost=true; setTimeout(()=>{ if(touch.active) input.boost=false; }, 120); return; }
+    if(state===STATE.ARRIVE){
+      if(typer.done && p.x>=door.x && p.x<=door.x+door.w && p.y>=door.y && p.y<=door.y+door.h){
+        beginDialog(["Hiiii pretty girl!","Will you be my valentine?"]);
+        state=STATE.DIALOG;
+      }
+      return;
+    }
+    if(state===STATE.DIALOG){
+      advanceDialog();
+      if(dialog.done) state=STATE.CHOICE; // (choice scene will be added later if you want)
+      return;
+    }
+  });
+
+  canvas.addEventListener("pointermove",(e)=>{const p=toLocal(e); input.x=p.x; input.y=p.y;});
+  canvas.addEventListener("pointerup",()=>{touch.active=false; input.boost=false;});
+  canvas.addEventListener("pointercancel",()=>{touch.active=false; input.boost=false;});
+
+  // ---------- Main loop ----------
+  let last=performance.now();
+  function tick(now){
+    const dt=Math.min(0.033, Math.max(0.008, (now-last)/1000));
+    last=now;
+
+    world.t += dt;
+
+    // update bg drift even in menu/arrive/dialog
+    if(bgBubbles.length<18 && Math.random()<0.20) spawnBgBubble();
+    for(let i=bgBubbles.length-1;i>=0;i--){
+      const b=bgBubbles[i];
+      b.p += dt*1.2*b.wob;
+      b.x -= (40 + b.sp) * dt;
+      b.y += Math.sin(b.p)*0.25;
+      if(b.x < -200) bgBubbles.splice(i,1);
+    }
+
+    if(state===STATE.FLY) updateFlight(dt);
+
+    // draw
+    if(!spritesReady){
+      drawSky(); drawHorizon();
+      glassPanel(W*0.25, H*0.36, W*0.50, 120, 22);
+      ctx.textAlign="center";
+      ctx.fillStyle="rgba(255,255,255,0.96)";
+      ctx.font="900 24px system-ui";
+      ctx.fillText("Loading sprites…", W/2, H*0.42);
+      ctx.font="16px system-ui";
+      ctx.fillStyle="rgba(255,255,255,0.85)";
+      ctx.fillText(`${loaded}/${total}`, W/2, H*0.48);
+      ctx.textAlign="left";
+      requestAnimationFrame(tick);
+      return;
+    }
+
+    if(state===STATE.MENU) drawMenu();
+    else if(state===STATE.FLY) drawFlight();
+    else if(state===STATE.ARRIVE) drawArrive();
+    else if(state===STATE.DIALOG) drawDialogScene();
+    else drawMenu(); // fallback
+
+    requestAnimationFrame(tick);
+  }
+
+  // init
+  hardRestart();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
