@@ -22,7 +22,6 @@
       radial-gradient(circle at 50% -10%, rgba(255,255,255,.10), transparent 55%),
       radial-gradient(circle at 50% 120%, rgba(255,255,255,.10), transparent 60%);
   }
-
   .wrap{height:100%;display:flex;align-items:center;justify-content:center;padding:22px;}
   .window{
     width:min(1120px,96vw);border-radius:18px;overflow:hidden;
@@ -56,7 +55,6 @@
     color:rgba(247,251,255,.86);font-size:12px;user-select:none;
   }
   .winbtn.close{background:linear-gradient(180deg, rgba(255,107,107,.55), rgba(255,107,107,.18));border-color:rgba(255,107,107,.55);}
-
   .content{padding:14px;background:linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.22));}
   canvas{
     width:100%;aspect-ratio:1040/600;height:auto;display:block;
@@ -126,34 +124,26 @@
   const musicState = document.getElementById("musicState");
   const vol = document.getElementById("vol");
   let muted=false, playing=false;
-
   function setMusicVolume(){
     const v = Math.max(0, Math.min(1, (Number(vol.value)||0)/100));
     bgm.volume = muted ? 0 : v;
   }
   vol.addEventListener("input", ()=>{ setMusicVolume(); musicState.textContent = muted ? "Music: muted" : (playing ? "Music: on" : "Music: off"); });
   setMusicVolume();
-
   async function startMusic(){
     try{
-      bgm.muted=false;
-      setMusicVolume();
-      bgm.load();
+      bgm.muted=false; setMusicVolume(); bgm.load();
       await bgm.play();
-      playing=true;
-      playBtn.textContent="⏸ Pause";
+      playing=true; playBtn.textContent="⏸ Pause";
       musicState.textContent = muted ? "Music: muted" : "Music: on";
     }catch(e){
-      playing=false;
-      playBtn.textContent="▶ Play";
+      playing=false; playBtn.textContent="▶ Play";
       musicState.textContent="Music: failed (check filename)";
       console.warn(e);
     }
   }
   function pauseMusic(){
-    bgm.pause();
-    playing=false;
-    playBtn.textContent="▶ Play";
+    bgm.pause(); playing=false; playBtn.textContent="▶ Play";
     musicState.textContent = muted ? "Music: muted" : "Music: off";
   }
   playBtn.addEventListener("click",(e)=>{ e.preventDefault(); e.stopPropagation(); (playing && !bgm.paused) ? pauseMusic() : startMusic(); });
@@ -231,14 +221,8 @@
     ],
     travelSeconds:42,
     glide:{
-      planeX:0.32,
-      ySmooth:0.13,
-      maxYSpeed:620,
-      tiltStrength:0.0017,
-      baseScroll:260,
-      boostScroll:360,
-      scrollEase:0.08,
-      trailLen:70
+      planeX:0.32, ySmooth:0.13, maxYSpeed:620, tiltStrength:0.0017,
+      baseScroll:260, boostScroll:360, scrollEase:0.08, trailLen:70
     },
     obstacles:{
       bubbleEveryMin:0.65, bubbleEveryMax:1.15,
@@ -246,7 +230,7 @@
     }
   };
 
-  // ✅ Sprites at 15% of previous (0.15x)
+  // ✅ Sprites at 15% size
   const SPR = {
     menu: 1.20 * 0.15,
     dialogYou: 1.30 * 0.15,
@@ -269,7 +253,7 @@
   }
 
   // ---------- Input ----------
-  const input={x:W*0.5,y:H*0.5,boost:false,justBoost:false};
+  const input={x:W*0.5,y:H*0.5,boost:false};
   const touch={active:false};
   function toLocal(e){
     const r=canvas.getBoundingClientRect();
@@ -277,7 +261,7 @@
   }
   window.addEventListener("keydown",(e)=>{
     if(e.key==="r"||e.key==="R") hardRestart();
-    if(e.code==="Space"){ e.preventDefault(); input.boost=true; input.justBoost=true; }
+    if(e.code==="Space"){ e.preventDefault(); input.boost=true; }
   });
   window.addEventListener("keyup",(e)=>{ if(e.code==="Space") input.boost=false; });
 
@@ -285,7 +269,7 @@
   const STATE={MENU:0,FLY:1,ARRIVE:2,DIALOG:3,CHOICE:4,CRASH:5,WIN:6};
   let state=STATE.MENU;
 
-  // ---------- Story typing ----------
+  // ---------- Typing + dialog ----------
   const typer={active:false,target:"",shown:"",i:0,t:0,speed:4,done:false};
   function beginType(text,speed=4){ typer.active=true; typer.target=text; typer.shown=""; typer.i=0; typer.t=0; typer.speed=speed; typer.done=false; }
   function updateType(){
@@ -313,17 +297,17 @@
     if(dialog.li>=dialog.lines.length) dialog.done=true;
   }
 
-  // ---------- World / entities ----------
+  // ---------- World ----------
   const world={t:0,scroll:0,scrollSpd:GAME.glide.baseScroll,progress:0,oceanPhase:0};
-  const plane={
-    x:W*GAME.glide.planeX, y:H*0.42, vy:0, tilt:0,
-    trail:[],
-    hp:10,
-    invuln:0 // seconds
-  };
+  const plane={x:W*GAME.glide.planeX,y:H*0.42,vy:0,tilt:0,trail:[],hp:10,invuln:0};
   const door={x:W*0.74,y:H*0.22,w:150,h:240};
   const bgBubbles=[], jokes=[], clouds=[], bubbles=[], pops=[];
-  let bubbleTimer=0.5, cloudTimer=0.9;
+  let bubbleTimer=0.55, cloudTimer=0.95;
+
+  // Choices / crash / win
+  let noRemoved=false;
+  let choiceRegions=[];
+  let crashTimer=0;
 
   function spawnBgBubble(){
     bgBubbles.push({x:W+rand(30,220),y:rand(50,H*0.62),r:rand(18,80),sp:rand(12,34),a:rand(0.06,0.14),hue:rand(170,240),wob:rand(0.8,1.5),p:rand(0,Math.PI*2)});
@@ -341,19 +325,15 @@
     if(plane.trail.length>GAME.glide.trailLen) plane.trail.shift();
   }
 
-  // ---------- Damage / restart ----------
   function takeHit(x,y){
     if(plane.invuln>0) return;
     plane.hp = Math.max(0, plane.hp-1);
-    plane.invuln = 0.55; // i-frames
+    plane.invuln = 0.55;
     popAt(x,y,26);
-    if(plane.hp<=0){
-      // immediate restart (to menu)
-      hardRestart();
-    }
+    if(plane.hp<=0) hardRestart();
   }
 
-  // ---------- Drawing ----------
+  // ---------- Drawing (Frutiger-ish) ----------
   function drawSky(){
     const g=ctx.createLinearGradient(0,0,0,H);
     g.addColorStop(0,"#1c8fe0");
@@ -376,8 +356,7 @@
     sea.addColorStop(0,"rgba(90,210,235,0.55)");
     sea.addColorStop(0.55,"rgba(40,120,190,0.55)");
     sea.addColorStop(1,"rgba(10,40,80,0.60)");
-    ctx.fillStyle=sea;
-    ctx.fillRect(0,seaTop,W,H*0.24);
+    ctx.fillStyle=sea; ctx.fillRect(0,seaTop,W,H*0.24);
 
     world.oceanPhase += 0.02;
     ctx.save(); ctx.globalAlpha=0.18; ctx.strokeStyle="rgba(255,255,255,0.70)"; ctx.lineWidth=2;
@@ -399,6 +378,7 @@
     gr.addColorStop(0.35,"rgba(120,230,90,0.55)");
     gr.addColorStop(1,"rgba(60,160,60,0.95)");
     ctx.fillStyle=gr; ctx.fillRect(0,grassTop,W,H-grassTop);
+
     ctx.save(); ctx.globalAlpha=0.18;
     const hg=ctx.createLinearGradient(0,grassTop,0,grassTop+120);
     hg.addColorStop(0,"rgba(255,255,255,0.35)");
@@ -489,10 +469,8 @@
     ctx.fillStyle="rgba(255,200,120,0.90)"; roundRect(-10,-2,34,8,6,true);
     ctx.restore();
 
-    // invuln blink
     if(plane.invuln>0){
-      ctx.save();
-      ctx.globalAlpha=0.22;
+      ctx.save(); ctx.globalAlpha=0.22;
       glow(plane.x,plane.y,120,"rgba(255,120,190,0.95)",0.12);
       ctx.restore();
     }
@@ -514,7 +492,6 @@
     ctx.fillStyle="rgba(255,255,255,0.90)";
     ctx.fillText(`${GAME.from}  →  ${GAME.to}`, x+6, y+37);
 
-    // HP
     ctx.textAlign="right";
     ctx.fillStyle="rgba(10,30,60,0.65)";
     ctx.fillText(`💗 ${plane.hp}/10`, W-22, y+38);
@@ -524,113 +501,64 @@
     ctx.restore();
   }
 
-  // ---------- Flight update ----------
-  function updateFlight(dt){
-    const targetSpd = input.boost ? GAME.glide.boostScroll : GAME.glide.baseScroll;
-    world.scrollSpd = lerp(world.scrollSpd, targetSpd, GAME.glide.scrollEase);
-    world.scroll += world.scrollSpd * dt;
+  // ---------- Choice UI ----------
+  function drawChoiceButtons(){
+    choiceRegions=[];
+    const opts=[];
+    if(!noRemoved) opts.push({key:"no",label:"No..."});
+    opts.push({key:"maybe",label:"Mmmmmmm.. Maybe!"});
+    opts.push({key:"yes",label:"I WOULD SAY YESH!"});
 
-    // progress
-    world.progress = clamp(world.scroll / (GAME.travelSeconds * GAME.glide.baseScroll), 0, 1);
+    const cx=W/2;
+    let y=H*0.56;
+    const bw=520,bh=64,gap=14;
 
-    // glide Y
-    const top=60, bot=H*0.60;
-    const ty = clamp(input.y, top, bot);
-    const dy = ty - plane.y;
-    const desiredVy = dy * (GAME.glide.ySmooth / Math.max(0.001, dt));
-    plane.vy = lerp(plane.vy, clamp(desiredVy, -GAME.glide.maxYSpeed, GAME.glide.maxYSpeed), 0.10);
-    plane.y += plane.vy * dt;
+    ctx.save();
+    ctx.textAlign="center";
+    ctx.font="800 20px system-ui";
 
-    plane.tilt = lerp(plane.tilt, clamp(plane.vy * GAME.glide.tiltStrength, -0.33, 0.33), 0.12);
-    plane.x = W * GAME.glide.planeX;
+    for(const o of opts){
+      const x=cx-bw/2;
 
-    // invuln timer
-    plane.invuln = Math.max(0, plane.invuln - dt);
-
-    pushTrail();
-
-    // background bubbles
-    if(bgBubbles.length<18 && Math.random()<0.35) spawnBgBubble();
-    for(let i=bgBubbles.length-1;i>=0;i--){
-      const b=bgBubbles[i];
-      b.p += dt*1.2*b.wob;
-      b.x -= (world.scrollSpd*0.12 + b.sp) * dt;
-      b.y += Math.sin(b.p)*0.25;
-      if(b.x < -200) bgBubbles.splice(i,1);
-    }
-
-    // jokes
-    if(jokes.length<3 && Math.random()<0.015) spawnJoke();
-    for(let i=jokes.length-1;i>=0;i--){
-      const j=jokes[i];
-      j.life += dt*60;
-      j.p += dt*1.4*j.bob;
-      j.x -= (world.scrollSpd*0.55 + j.sp) * dt;
-      j.y += Math.sin(j.p)*0.20;
-      const fadeIn=clamp(j.life/40,0,1);
-      const fadeOut=clamp((j.max-j.life)/50,0,1);
-      j.a=Math.min(fadeIn,fadeOut)*0.92;
-      if(j.life>=j.max || j.x<-520) jokes.splice(i,1);
-    }
-
-    // spawn obstacles (easier: fewer spawns)
-    cloudTimer -= dt;
-    if(cloudTimer<=0){ spawnCloud(); cloudTimer = rand(GAME.obstacles.cloudEveryMin, GAME.obstacles.cloudEveryMax); }
-
-    bubbleTimer -= dt;
-    if(bubbleTimer<=0){ spawnObstacleBubble(); bubbleTimer = rand(GAME.obstacles.bubbleEveryMin, GAME.obstacles.bubbleEveryMax); }
-
-    // move obstacles
-    for(let i=clouds.length-1;i>=0;i--){
-      const c=clouds[i];
-      c.p += dt*1.4*c.wob;
-      c.x -= world.scrollSpd * dt;
-      c.y += Math.sin(c.p)*0.18;
-      c.hit *= Math.pow(0.05, dt);
-      if(c.x<-260) clouds.splice(i,1);
-    }
-    for(let i=bubbles.length-1;i>=0;i--){
-      const b=bubbles[i];
-      b.p += dt*1.6*b.wob;
-      b.x -= world.scrollSpd * dt;
-      b.y += Math.sin(b.p)*0.20;
-      b.hit *= Math.pow(0.05, dt);
-      if(b.x<-260) bubbles.splice(i,1);
-    }
-
-    // pops
-    for(let i=pops.length-1;i>=0;i--){
-      const p=pops[i];
-      p.life -= dt;
-      p.x += p.vx*dt; p.y += p.vy*dt;
-      p.vx *= Math.pow(0.02, dt);
-      p.vy *= Math.pow(0.02, dt);
-      p.a = clamp(p.life/0.35,0,1);
-      if(p.life<=0) pops.splice(i,1);
-    }
-
-    // collisions (both deal damage now)
-    const pr=14;
-    for(const c of clouds){
-      const rr=c.r*0.95 + pr;
-      if(dist2(plane.x,plane.y,c.x,c.y) < rr*rr){
-        c.hit=1;
-        takeHit(c.x,c.y);
+      let fill;
+      if(o.key==="yes"){
+        const g=ctx.createLinearGradient(x,y,x+bw,y);
+        g.addColorStop(0,"rgba(110,235,255,0.92)");
+        g.addColorStop(0.6,"rgba(255,140,200,0.92)");
+        g.addColorStop(1,"rgba(255,235,170,0.92)");
+        fill=g;
+      }else if(o.key==="no"){
+        fill="rgba(255,107,107,0.82)";
+      }else{
+        const g=ctx.createLinearGradient(x,y,x+bw,y);
+        g.addColorStop(0,"rgba(255,255,255,0.18)");
+        g.addColorStop(1,"rgba(255,255,255,0.08)");
+        fill=g;
       }
-    }
-    for(const b of bubbles){
-      const rr=b.r*0.85 + pr;
-      if(dist2(plane.x,plane.y,b.x,b.y) < rr*rr){
-        b.hit=1;
-        takeHit(b.x,b.y);
-      }
+
+      ctx.fillStyle=fill; roundRect(x,y,bw,bh,20,true);
+      ctx.globalAlpha=0.45; ctx.fillStyle="rgba(255,255,255,0.18)";
+      roundRect(x+3,y+3,bw-6,bh*0.55,18,true);
+      ctx.globalAlpha=1;
+
+      ctx.fillStyle="rgba(0,30,60,0.16)";
+      roundRect(x,y+bh-12,bw,12,20,true);
+
+      ctx.fillStyle="rgba(255,255,255,0.98)";
+      ctx.fillText(o.label, cx, y+42);
+
+      choiceRegions.push({key:o.key,x,y,w:bw,h:bh});
+      y += bh + gap;
     }
 
-    // arrive
-    if(world.progress>=1){
-      state=STATE.ARRIVE;
-      beginType(GAME.typedDoorText, 4);
+    ctx.restore();
+    ctx.textAlign="left";
+  }
+  function choiceHit(px,py){
+    for(const r of choiceRegions){
+      if(px>=r.x&&px<=r.x+r.w&&py>=r.y&&py<=r.y+r.h) return r.key;
     }
+    return null;
   }
 
   // ---------- Scenes ----------
@@ -666,13 +594,14 @@
     ctx.textAlign="left";
   }
 
-  function drawFlight(){
+  function drawFlight(dt){
+    updateFlight(dt);
+
     drawSky(); drawHorizon(); drawBgBubbles();
     for(const c of clouds) drawCloud(c);
     for(const b of bubbles) drawObstacleBubble(b);
     drawJokes();
 
-    // pops
     for(const p of pops){
       ctx.save();
       ctx.globalAlpha=p.a*0.75;
@@ -681,31 +610,20 @@
       ctx.restore();
     }
 
-    drawTrail();
-    drawPlane();
-    drawHUD();
-
-    if(world.t < 7){
-      glassPanel(20, H-92, 640, 64, 18);
-      ctx.fillStyle="rgba(255,255,255,0.92)";
-      ctx.font="16px system-ui";
-      ctx.fillText("Glide with your cursor. Avoid clouds + bubbles. Space boosts.", 44, H-52);
-    }
+    drawTrail(); drawPlane(); drawHUD();
   }
 
   function drawArrive(){
     drawSky(); drawHorizon(); drawBgBubbles();
     updateType();
 
-    // settle plane
     plane.y = lerp(plane.y, H*0.44, 0.06);
     plane.vy *= 0.85;
     plane.tilt = lerp(plane.tilt, 0, 0.10);
     pushTrail();
 
-    drawTrail(); drawPlane();
+    drawTrail(); drawPlane(); drawHUD();
 
-    // door
     glow(door.x+door.w/2, door.y+door.h/2, 260, "rgba(255,255,255,0.95)", 0.10);
     ctx.fillStyle="rgba(0,40,80,0.30)"; roundRect(door.x,door.y,door.w,door.h,16,true);
     ctx.fillStyle="rgba(255,255,255,0.10)"; roundRect(door.x+14,door.y+14,door.w-28,door.h-28,14,true);
@@ -726,20 +644,7 @@
     ctx.fillText("You made it — click the door.", 44, H-52);
   }
 
-  function drawDialogScene(){
-    drawSky(); drawHorizon(); drawBgBubbles();
-    updateDialog();
-
-    // door backdrop
-    glow(door.x+door.w/2, door.y+door.h/2, 280, "rgba(255,255,255,0.95)", 0.10);
-    ctx.fillStyle="rgba(0,40,80,0.30)"; roundRect(door.x,door.y,door.w,door.h,16,true);
-    ctx.fillStyle="rgba(255,255,255,0.10)"; roundRect(door.x+14,door.y+14,door.w-28,door.h-28,14,true);
-
-    drawSprite(sprites.me_wave, door.x-60, door.y+door.h, SPR.dialogYou, "bottom-center");
-
-    // speech bubble
-    const line=dialog.typed;
-    const hint=dialog.waiting ? "Click to continue" : "";
+  function drawSpeech(line, hint){
     const cx=W*0.50, cy=H*0.28;
     ctx.save();
     ctx.font="20px system-ui";
@@ -755,29 +660,255 @@
     ctx.restore();
   }
 
-  // ---------- Click handling ----------
+  function drawDialogScene(dt){
+    drawSky(); drawHorizon(); drawBgBubbles();
+    updateDialog();
+
+    glow(door.x+door.w/2, door.y+door.h/2, 280, "rgba(255,255,255,0.95)", 0.10);
+    ctx.fillStyle="rgba(0,40,80,0.30)"; roundRect(door.x,door.y,door.w,door.h,16,true);
+    ctx.fillStyle="rgba(255,255,255,0.10)"; roundRect(door.x+14,door.y+14,door.w-28,door.h-28,14,true);
+
+    drawSprite(sprites.me_wave, door.x-60, door.y+door.h, SPR.dialogYou, "bottom-center");
+
+    drawSpeech(dialog.typed, dialog.waiting ? "Click to continue" : "");
+  }
+
+  function drawChoiceScene(){
+    drawSky(); drawHorizon(); drawBgBubbles();
+
+    glow(door.x+door.w/2, door.y+door.h/2, 280, "rgba(255,255,255,0.95)", 0.10);
+    ctx.fillStyle="rgba(0,40,80,0.30)"; roundRect(door.x,door.y,door.w,door.h,16,true);
+    ctx.fillStyle="rgba(255,255,255,0.10)"; roundRect(door.x+14,door.y+14,door.w-28,door.h-28,14,true);
+
+    drawSprite(sprites.me_wave, door.x-60, door.y+door.h, SPR.dialogYou, "bottom-center");
+
+    glassPanel(W*0.22, H*0.40, W*0.56, 72, 18);
+    ctx.textAlign="center";
+    ctx.fillStyle="rgba(255,255,255,0.96)";
+    ctx.font="900 22px system-ui";
+    ctx.fillText("Will you be my valentine?", W/2, H*0.40 + 48);
+    ctx.textAlign="left";
+
+    drawChoiceButtons();
+  }
+
+  function drawCrash(dt){
+    crashTimer += dt;
+
+    drawSky(); drawHorizon(); drawBgBubbles();
+
+    // glitch box
+    ctx.save();
+    ctx.fillStyle="rgba(0,0,0,0.70)";
+    roundRect(90,120,W-180,360,22,true);
+
+    ctx.fillStyle="rgba(255,107,107,0.95)";
+    ctx.font="900 36px system-ui";
+    ctx.fillText("FATAL ERROR",140,190);
+
+    ctx.fillStyle="rgba(255,255,255,0.85)";
+    ctx.font="16px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+    const lines=[
+      "UnhandledException: NO is not a valid response.",
+      "at ValentinesCore.askAgain()",
+      "at DoorEngine.openTheDore()",
+      "at Kelci.chooseOption(\"No...\")",
+      "",
+      "Recovering…"
+    ];
+    let y=236;
+    for(const l of lines){ ctx.fillText(l,140,y); y+=24; }
+    ctx.restore();
+
+    // glitch stripes
+    ctx.save();
+    ctx.globalAlpha=0.14; ctx.fillStyle="rgba(255,120,190,1)";
+    for(let i=0;i<10;i++) ctx.fillRect(0,rand(0,H),W,rand(2,10));
+    ctx.globalAlpha=0.12; ctx.fillStyle="rgba(110,235,255,1)";
+    for(let i=0;i<8;i++) ctx.fillRect(0,rand(0,H),W,rand(2,9));
+    ctx.restore();
+
+    if(crashTimer > 1.35){
+      // remove "No..." and ask again
+      noRemoved = true;
+      crashTimer = 0;
+      beginDialog(["Okay… try again 😌","Will you be my valentine?"]);
+      state = STATE.DIALOG;
+    }
+  }
+
+  const confetti=[];
+  function spawnConfetti(n=120){
+    for(let i=0;i<n;i++){
+      confetti.push({x:rand(0,W),y:rand(-80,-10),vx:rand(-90,90),vy:rand(60,220),r:rand(2,5),a:rand(0.7,1),h:rand(170,320),rot:rand(0,Math.PI*2),vr:rand(-3,3),life:rand(1.8,3.5)});
+    }
+  }
+  function updateConfetti(dt){
+    for(let i=confetti.length-1;i>=0;i--){
+      const c=confetti[i];
+      c.life -= dt;
+      c.x += c.vx*dt; c.y += c.vy*dt;
+      c.vy += 60*dt;
+      c.rot += c.vr*dt;
+      if(c.y>H+80 || c.life<=0) confetti.splice(i,1);
+    }
+  }
+  function drawConfetti(){
+    for(const c of confetti){
+      ctx.save();
+      ctx.translate(c.x,c.y);
+      ctx.rotate(c.rot);
+      ctx.globalAlpha=c.a;
+      ctx.fillStyle=`hsla(${c.h},100%,70%,0.9)`;
+      ctx.fillRect(-c.r,-c.r,c.r*2,c.r*2);
+      ctx.restore();
+    }
+    ctx.globalAlpha=1;
+  }
+
+  function drawWin(dt){
+    updateConfetti(dt);
+
+    drawSky(); drawHorizon(); drawBgBubbles();
+    drawConfetti();
+
+    glassPanel(110,110,W-220,360,28);
+
+    ctx.textAlign="center";
+    ctx.fillStyle="rgba(255,255,255,0.96)";
+    ctx.font="900 52px system-ui";
+    ctx.fillText("SHE SAID YESH!!! 💖", W/2, 190);
+
+    ctx.fillStyle="rgba(255,255,255,0.90)";
+    ctx.font="18px system-ui";
+    ctx.fillText(`${GAME.girlfriendName} is now officially my Valentine.`, W/2, 228);
+
+    drawSprite(sprites.kelci_wave, W/2 - 190, H/2 + 190, SPR.win, "bottom-center");
+    drawSprite(sprites.me_wave,   W/2 + 190, H/2 + 190, SPR.win, "bottom-center");
+
+    ctx.fillStyle="rgba(255,255,255,0.95)";
+    ctx.font="22px system-ui";
+    ctx.fillText("I would like some ice cream too..", W/2, 430);
+
+    ctx.fillStyle="rgba(255,255,255,0.80)";
+    ctx.font="16px system-ui";
+    ctx.fillText("Press R to replay ✈️", W/2, 460);
+
+    ctx.textAlign="left";
+  }
+
+  // ---------- Flight update ----------
+  function updateFlight(dt){
+    const targetSpd = input.boost ? GAME.glide.boostScroll : GAME.glide.baseScroll;
+    world.scrollSpd = lerp(world.scrollSpd, targetSpd, GAME.glide.scrollEase);
+    world.scroll += world.scrollSpd * dt;
+    world.progress = clamp(world.scroll / (GAME.travelSeconds * GAME.glide.baseScroll), 0, 1);
+
+    const top=60, bot=H*0.60;
+    const ty = clamp(input.y, top, bot);
+    const dy = ty - plane.y;
+    const desiredVy = dy * (GAME.glide.ySmooth / Math.max(0.001, dt));
+    plane.vy = lerp(plane.vy, clamp(desiredVy, -GAME.glide.maxYSpeed, GAME.glide.maxYSpeed), 0.10);
+    plane.y += plane.vy * dt;
+
+    plane.tilt = lerp(plane.tilt, clamp(plane.vy * GAME.glide.tiltStrength, -0.33, 0.33), 0.12);
+    plane.x = W * GAME.glide.planeX;
+
+    plane.invuln = Math.max(0, plane.invuln - dt);
+    pushTrail();
+
+    // jokes
+    if(jokes.length<3 && Math.random()<0.015) spawnJoke();
+    for(let i=jokes.length-1;i>=0;i--){
+      const j=jokes[i];
+      j.life += dt*60;
+      j.p += dt*1.4*j.bob;
+      j.x -= (world.scrollSpd*0.55 + j.sp) * dt;
+      j.y += Math.sin(j.p)*0.20;
+      const fadeIn=clamp(j.life/40,0,1);
+      const fadeOut=clamp((j.max-j.life)/50,0,1);
+      j.a=Math.min(fadeIn,fadeOut)*0.92;
+      if(j.life>=j.max || j.x<-520) jokes.splice(i,1);
+    }
+
+    // spawn obstacles
+    cloudTimer -= dt;
+    if(cloudTimer<=0){ spawnCloud(); cloudTimer = rand(GAME.obstacles.cloudEveryMin, GAME.obstacles.cloudEveryMax); }
+    bubbleTimer -= dt;
+    if(bubbleTimer<=0){ spawnObstacleBubble(); bubbleTimer = rand(GAME.obstacles.bubbleEveryMin, GAME.obstacles.bubbleEveryMax); }
+
+    // move
+    for(let i=clouds.length-1;i>=0;i--){
+      const c=clouds[i];
+      c.p += dt*1.4*c.wob;
+      c.x -= world.scrollSpd * dt;
+      c.y += Math.sin(c.p)*0.18;
+      c.hit *= Math.pow(0.05, dt);
+      if(c.x<-260) clouds.splice(i,1);
+    }
+    for(let i=bubbles.length-1;i>=0;i--){
+      const b=bubbles[i];
+      b.p += dt*1.6*b.wob;
+      b.x -= world.scrollSpd * dt;
+      b.y += Math.sin(b.p)*0.20;
+      b.hit *= Math.pow(0.05, dt);
+      if(b.x<-260) bubbles.splice(i,1);
+    }
+
+    // pops
+    for(let i=pops.length-1;i>=0;i--){
+      const p=pops[i];
+      p.life -= dt;
+      p.x += p.vx*dt; p.y += p.vy*dt;
+      p.vx *= Math.pow(0.02, dt);
+      p.vy *= Math.pow(0.02, dt);
+      p.a = clamp(p.life/0.35,0,1);
+      if(p.life<=0) pops.splice(i,1);
+    }
+
+    // collisions
+    const pr=14;
+    for(const c of clouds){
+      const rr=c.r*0.95 + pr;
+      if(dist2(plane.x,plane.y,c.x,c.y) < rr*rr){
+        c.hit=1; takeHit(c.x,c.y);
+      }
+    }
+    for(const b of bubbles){
+      const rr=b.r*0.85 + pr;
+      if(dist2(plane.x,plane.y,b.x,b.y) < rr*rr){
+        b.hit=1; takeHit(b.x,b.y);
+      }
+    }
+
+    if(world.progress>=1){
+      state=STATE.ARRIVE;
+      beginType(GAME.typedDoorText, 4);
+    }
+  }
+
+  // ---------- Flow controls ----------
   function startFlight(){
     state=STATE.FLY;
-    world.scroll=0; world.progress=0;
-    world.scrollSpd=GAME.glide.baseScroll;
-    plane.hp=10; plane.invuln=0;
-    plane.trail.length=0;
+    world.scroll=0; world.progress=0; world.scrollSpd=GAME.glide.baseScroll;
+    plane.hp=10; plane.invuln=0; plane.trail.length=0;
     clouds.length=0; bubbles.length=0; pops.length=0; jokes.length=0;
     bubbleTimer=0.55; cloudTimer=0.95;
     for(let i=0;i<2;i++) spawnJoke();
   }
-
   function hardRestart(){
     state=STATE.MENU;
     world.t=0; world.scroll=0; world.scrollSpd=GAME.glide.baseScroll; world.progress=0; world.oceanPhase=0;
     plane.x=W*GAME.glide.planeX; plane.y=H*0.42; plane.vy=0; plane.tilt=0; plane.trail.length=0; plane.hp=10; plane.invuln=0;
-    bgBubbles.length=0; jokes.length=0; clouds.length=0; bubbles.length=0; pops.length=0;
+    bgBubbles.length=0; jokes.length=0; clouds.length=0; bubbles.length=0; pops.length=0; confetti.length=0;
+    noRemoved=false; crashTimer=0;
     beginType("",4); beginDialog([]);
     bubbleTimer=0.55; cloudTimer=0.95;
     for(let i=0;i<12;i++) spawnBgBubble();
     for(let i=0;i<2;i++) spawnJoke();
   }
 
+  // ---------- Pointer ----------
   canvas.addEventListener("pointerdown",(e)=>{
     canvas.setPointerCapture(e.pointerId);
     touch.active=true;
@@ -787,7 +918,13 @@
     armMusic();
 
     if(state===STATE.MENU){ startFlight(); return; }
-    if(state===STATE.FLY){ input.boost=true; input.justBoost=true; setTimeout(()=>{ if(touch.active) input.boost=false; }, 120); return; }
+
+    if(state===STATE.FLY){
+      input.boost=true;
+      setTimeout(()=>{ if(touch.active) input.boost=false; }, 120);
+      return;
+    }
+
     if(state===STATE.ARRIVE){
       if(typer.done && p.x>=door.x && p.x<=door.x+door.w && p.y>=door.y && p.y<=door.y+door.h){
         beginDialog(["Hiiii pretty girl!","Will you be my valentine?"]);
@@ -795,13 +932,39 @@
       }
       return;
     }
+
     if(state===STATE.DIALOG){
       advanceDialog();
-      if(dialog.done) state=STATE.CHOICE; // (choice scene will be added later if you want)
+      if(dialog.done) state=STATE.CHOICE;   // ✅ goes to choice screen now
+      return;
+    }
+
+    if(state===STATE.CHOICE){
+      const key = choiceHit(p.x,p.y);
+      if(!key) return;
+
+      if(key==="no"){
+        crashTimer=0;
+        state=STATE.CRASH;
+        return;
+      }
+      if(key==="maybe"){
+        beginDialog(["PLEEEEAAASEEEE!","Will you be my valentine?"]);
+        state=STATE.DIALOG;
+        return;
+      }
+      if(key==="yes"){
+        spawnConfetti(160);
+        state=STATE.WIN;
+        return;
+      }
+    }
+
+    if(state===STATE.WIN){
+      // click does nothing; press R to replay
       return;
     }
   });
-
   canvas.addEventListener("pointermove",(e)=>{const p=toLocal(e); input.x=p.x; input.y=p.y;});
   canvas.addEventListener("pointerup",()=>{touch.active=false; input.boost=false;});
   canvas.addEventListener("pointercancel",()=>{touch.active=false; input.boost=false;});
@@ -811,10 +974,9 @@
   function tick(now){
     const dt=Math.min(0.033, Math.max(0.008, (now-last)/1000));
     last=now;
-
     world.t += dt;
 
-    // update bg drift even in menu/arrive/dialog
+    // bg bubbles drift
     if(bgBubbles.length<18 && Math.random()<0.20) spawnBgBubble();
     for(let i=bgBubbles.length-1;i>=0;i--){
       const b=bgBubbles[i];
@@ -824,9 +986,6 @@
       if(b.x < -200) bgBubbles.splice(i,1);
     }
 
-    if(state===STATE.FLY) updateFlight(dt);
-
-    // draw
     if(!spritesReady){
       drawSky(); drawHorizon();
       glassPanel(W*0.25, H*0.36, W*0.50, 120, 22);
@@ -843,10 +1002,13 @@
     }
 
     if(state===STATE.MENU) drawMenu();
-    else if(state===STATE.FLY) drawFlight();
+    else if(state===STATE.FLY) drawFlight(dt);
     else if(state===STATE.ARRIVE) drawArrive();
-    else if(state===STATE.DIALOG) drawDialogScene();
-    else drawMenu(); // fallback
+    else if(state===STATE.DIALOG) drawDialogScene(dt);
+    else if(state===STATE.CHOICE) drawChoiceScene();
+    else if(state===STATE.CRASH) drawCrash(dt);
+    else if(state===STATE.WIN) drawWin(dt);
+    else drawMenu();
 
     requestAnimationFrame(tick);
   }
